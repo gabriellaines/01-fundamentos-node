@@ -1,5 +1,6 @@
-import { Readable } from 'node:stream';
+import { Readable, Writable, Transform } from 'node:stream';
 
+// can only read data from it
 // stream de leitura tem como proposito fornecer dados
 class OneToHundredStream extends Readable {
     
@@ -8,18 +9,39 @@ class OneToHundredStream extends Readable {
     _read() {
         const i =  this.index++;
         
-        if (i > 100) {
-            // push is a method from the readable class that sends data to be read
-            this.push(null);
-        } else {
-            // when working with streams, the data that will be sent to them
-            // need to be a buffer
-            // the buffer accepts only strings not numbers
-            const buf = Buffer.from(String(i));
-            this.push(buf);
-        }
+        setTimeout(() => {
+            if (i > 100) {
+                this.push(null);
+            } else {
+                const buf = Buffer.from(String(i));
+                this.push(buf);
+            }
+        }, 1000);
+    }
+}
+
+// can only write data to it
+// writable only process the data
+class MultiplyByTenStream extends Writable {
+    // chunk = the piece we read
+    // encoding = how the information is encoded
+    // callback = call when the stream is finished
+    _write(chunk, encoding, callback) {
+        console.log(Number(chunk.toString()) * 10);
+        callback();
+    }
+}
+
+// needs to read data from somewhere and write data to somewhere
+// receive parse and sent data
+class InverseNumber extends Transform {
+    _transform(chunk, encoding, callback) {
+        const transformed = Number(chunk.toString()) * -1;
+        // callback uses the error first approach, that's why the null first
+        callback(null, Buffer.from(String(transformed)));
     }
 }
 
 new OneToHundredStream()
-    .pipe(process.stdout);
+    .pipe(new InverseNumber())
+    .pipe(new MultiplyByTenStream());
